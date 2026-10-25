@@ -1,25 +1,54 @@
 from flask import Flask, jsonify, request
-from data import products
 
 app = Flask(__name__)
 
-# TODO: Implement homepage route that returns a welcome message
+# Simulated data
+class Event:
+    def __init__(self, id, title):
+        self.id = id
+        self.title = title
 
-@app.route("/")
-def home():
-    pass  # TODO: Return a welcome message
+    def to_dict(self):
+        return {"id": self.id, "title": self.title}
 
-# TODO: Implement GET /products route that returns all products or filters by category
 
-@app.route("/products")
-def get_products():
-    pass  # TODO: Return all products or filter by ?category=
+events = [
+    Event(1, "Tech Meetup"),
+    Event(2, "Python Workshop")
+]
 
-# TODO: Implement GET /products/<id> route that returns a specific product by ID or 404
 
-@app.route("/products/<int:id>")
-def get_product_by_id(id):
-    pass  # TODO: Return product by ID or 404
+@app.route('/events', methods=['POST'])
+def create_event():
+    data = request.get_json()
+    if not data or 'title' not in data:
+        return jsonify({"error": "Missing 'title' in request body"}), 400
 
-if __name__ == "__main__":
+    new_id = max((event.id for event in events), default=0) + 1
+    new_event = Event(new_id, data['title'])
+    events.append(new_event)
+    return jsonify(new_event.to_dict()), 201
+
+
+@app.route('/events/<int:id>', methods=['PATCH'])
+def update_event(id):
+    data = request.get_json()
+    for event in events:
+        if event.id == id:
+            if data and 'title' in data:
+                event.title = data['title']
+            return jsonify(event.to_dict()), 200
+    return jsonify({"error": f"Event with id {id} not found"}), 404
+
+
+@app.route('/events/<int:id>', methods=['DELETE'])
+def delete_event(id):
+    for event in events:
+        if event.id == id:
+            events.remove(event)
+            return '', 204
+    return jsonify({"error": f"Event with id {id} not found"}), 404
+
+
+if __name__ == '__main__':
     app.run(debug=True)
